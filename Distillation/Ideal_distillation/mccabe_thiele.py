@@ -83,6 +83,8 @@ class Ideal_Distillation:
         # Create xy line and equilibrium line
         x = np.linspace(0,1,100)
         equilibrium_line = alpha*x/(1+(alpha-1)*x)
+        
+        # Plotting the xy line and the equilibrium line
         plt.plot(x, x, color='black')
         plt.plot(x, equilibrium_line, color='black')
         plt.xlabel('x')
