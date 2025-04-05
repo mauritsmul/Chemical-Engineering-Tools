@@ -31,39 +31,7 @@ class Ideal_Distillation:
         self.q = q
         self.R_fac = R_fac
 
-    def calculate_relative_volatility(antoine, T):
-        """Calculates the relative volatility of the binary mixture
-        
-        Keyword arguments:
-            antoine: list containing two lists : containing two sets of the antoine coefficients of the binary mixture
-            T: float : Temperature in Kelvin
-        
-        Returns:
-            alpha: float : Relative volatility of the binary mixture"""
-        
-        # Create empty list for vapor pressures
-        P_vap = [10 **(i[0] - i[1] / (T + i[2])) for i in antoine]
-    
-        # Calculate the relative volatility
-        alpha = max(P_vap)/min(P_vap)
-        return alpha
-
-    def calculate_minimum_reflux_ratio(xd, xf, alpha):
-        """Calculates the minimum reflux ratio
-        
-        Keyword arguments:
-            xd: float : Distillate molar fraction of the most volatile component
-            xf: float : Feed composition of the most volatile component
-            alpha: float : Relative volatility of the binary mixture
-            
-        Returns:
-            R_min: float : Minimum reflux ratio"""
-        
-        # Calculate the minimum reflux ratio
-        R_min = (xd/xf-alpha*((1-xd)/(1-xf)))/(alpha-1)
-        return R_min
-
-    def plot_mccabe_thiele(T, xd, xb, xf, alpha, q, reflux_ratio):
+    def plot_mccabe_thiele(antoine, T, xd, xb, xf, q, reflux_factor):
         """Plots the McCabe-Thiele diagram
         
         Keyword arguments:
@@ -80,68 +48,163 @@ class Ideal_Distillation:
 
         """
 
+        # Calculate the vapor pressures
+        P_vap = [10 **(i[0] - i[1] / (T + i[2])) for i in antoine]
+    
+        # Calculate the relative volatility
+        alpha = max(P_vap)/min(P_vap)
+
         # Create xy line and equilibrium line
         x = np.linspace(0,1,100)
+        y = np.linspace(0,1,100)
         equilibrium_line = alpha*x/(1+(alpha-1)*x)
-        
+
         # Plotting the xy line and the equilibrium line
-        plt.plot(x, x, color='black')
+        plt.plot(x, y, color='black')
         plt.plot(x, equilibrium_line, color='black')
         plt.xlabel('x')
         plt.ylabel('y')
         plt.title('McCabe-Thiele diagram')
         plt.axis([0, 1, 0, 1])
-        plt.show()
 
-        # Plot the q line
+        # Plot the q line 
+        if q == 1:
+            x_values_q_line = xf*np.ones(len(y)) 
+            plt.plot(x_values_q_line, y, label='q line')
+        else:
+            q_line = -q/(1-q)*x + xf/(1-q)
+            plt.plot(x, q_line, label='q line')
         
-        # Find the intersection between the q line and the rectifying line
-        
+        # Calculate the intersection point between the q line and the equilibrium line
+        if q == 1: 
+            intersection_q_and_VLE = xf
+        else:
+            intersection_q_and_VLE = sp.fsolve(lambda x: alpha*x/(1+(alpha-1)*x) - (-q/(1-q)*x + xf/(1-q)), xf)
+
+        # Check if xd is above the intersection between the q_line and the equilibrium line
+        intersection_y = alpha*intersection_q_and_VLE/(1+(alpha-1)*intersection_q_and_VLE)
+        if intersection_y > xd:
+            raise ValueError('Infeasible "xd" parameter, the vapor fraction cannot decrease while the liquid molar fraction is increasing')
+        elif intersection_q_and_VLE < xb:
+            raise ValueError('Infeasible "xb" parameter, the vapor fraction cannot increase while the liquid molar fraction is decreasing')
+
+        # Calculate the maximum reflux ratio
+        minimum_reflux = (xd/intersection_q_and_VLE-alpha*((1-xd)/(1-intersection_q_and_VLE)))/(alpha-1)
+
+        # Set the reflux ratio
+        reflux_ratio = minimum_reflux*reflux_factor
         
         # Plot the rectifying line
-        
+        rectifying_line = (reflux_ratio / (1+reflux_ratio)) * x + ( 1/(1 + reflux_ratio)) * xd
+        plt.plot(x, rectifying_line, label='Rectifying')
+
         # Plot the stripping line
+        if q == 1: 
+            x_upper = xf
+        else:
+            x_upper = sp.fsolve(lambda x: (reflux_ratio/(1+reflux_ratio))*x+(1/(1+reflux_ratio))*xd - (-q/(1-q)*x + xf/(1-q)), xf)
+
+        y_upper = (reflux_ratio/(1+reflux_ratio))*x_upper+(1/(1+reflux_ratio))*xd
+        stripping_slope = (y_upper-xb)/(x_upper-xb)
+        b = xb - stripping_slope*xb
+        y_stripping = stripping_slope*x + b
+        plt.plot(x, y_stripping, label='Stripping')
+
+        # Drawing the stages
+        # First we set the conditions for when the seesaw is in the stripping or rectifying section
+        # Condition is True when the drawing algorithm is in the corresponding section
+        # The algorithm starts in the stripping section:
+        stripping_condition, rectifying_condition = True, False
         
-        # Draw the stages
+        # Make an array in which the points can be stored
+        seesaw_points_x = [np.array([xb])]
+        seesaw_points_y = [np.array([xb])]
+
+        # Set initial starting point
+        x_start, y_start = np.array([xb]), np.array([xb])
+
+        # The algorithm does the following until the seesaw reaches the rectifying section:
+        # 1. Find the VLE point for from the starting point on the stripping section
+        while stripping_condition:
+            # Save the VLE point
+            seesaw_points_x.append(x_start)
+            vle_point = alpha*x_start/(1+(alpha-1)*x_start)
+            seesaw_points_y.append(vle_point)
+
+            # Check VLE conditional
+            if vle_point > y_upper:
+                stripping_condition = False
+                rectifying_condition = True
+                x_start = sp.fsolve(lambda x: (reflux_ratio/(1+reflux_ratio))*x+(1/(1+reflux_ratio))*xd - vle_point, x0=xf)
+                y_start = vle_point
+                seesaw_points_x.append(x_start)
+                seesaw_points_y.append(y_start)
+                break 
+
+            # Calculate the new starting point on the stripping section
+            x_start = (vle_point-b)/stripping_slope
+            y_start = stripping_slope*x_start + b
+            seesaw_points_x.append(x_start)
+            seesaw_points_y.append(y_start)
+
+        while rectifying_condition:
+            # Save the VLE point
+            seesaw_points_x.append(x_start)
+            vle_point = alpha*x_start/(1+(alpha-1)*x_start)
+            seesaw_points_y.append(vle_point)
+
+            # Check VLE conditional
+            if vle_point > xd:
+                rectifying_condition = False
+                seesaw_points_y.pop(-1)
+                seesaw_points_y.append(np.array([xd]))
+                # Add last point
+                seesaw_points_y.append(np.array([xd]))
+                seesaw_points_x.append(np.array([xd]))
+                break 
+            
+            # Calculate the new starting point on the rectifying section
+            a = reflux_ratio/(1+reflux_ratio)
+            b = (1/(1+reflux_ratio))*xd
+            x_start = sp.fsolve(lambda x: a*x+b - vle_point, vle_point)
+            seesaw_points_x.append(x_start)
+            seesaw_points_y.append(vle_point)
+
+        # Plot the stages calculated
+        plt.plot(seesaw_points_x, seesaw_points_y)
+        plt.show()
+
+            
+
+
+        # 2. Find the point on the stripping line with the same liquid molar fraction on the stripping line
+        # 3. Check whether the point on the VLE line is above the intersection between the stripping and the rectifying line
 
     def show_design_summary():
         pass
          
 
-
-# Plot the McCabe-Thiele diagram
-def plot_mccabe_thiele(T, xb, xf, xd, antoine, q, reflux_factor):
-    
-    """
-    Plots the McCabe-Thiele diagram using the user input parameters
-
-    Keyword arguments:
-            T: float : Temperature at which the distillation is done in Kelvin
-            xd: float : Distillate molar fraction of the most volatile component
-            xb: float : Bottom molar fraction of the most volatile component
-            xf: float : Feed composition of the most volatile component
-            alpha: float : Relative volatility of the binary mixture
-            q: float : Quality of the feed
-            reflux_ratio: float : Reflux ratio
-
-    Returns:
-            Plot of the McCabe-Thiele diagram for the given binary mixture with given input parameters
-    """
-
-    alpha = Ideal_Distillation.calculate_relative_volatility(antoine, T)
-    reflux_ratio = reflux_factor*Ideal_Distillation.calculate_minimum_reflux_ratio(xd, xf, alpha)
-    Ideal_Distillation.plot_mccabe_thiele(T, xd, xb, xf, alpha, q, reflux_ratio)
-
-
 """INPUT PARAMETERS FROM USER"""
+
 # Input parameters
-T = 300
+
+"""
+T               :    float     : Temperature at which the distillation is done in Kelvin
+xb              :    float     : Bottom molar fraction of the most volatile component
+xf              :    float     : Feed composition of the most volatile component
+xd              :    float     : Distillate molar fraction of the most volatile component
+antoine         :    list      : Antoine coeffients of the binary mixture
+q               :    float     : Quality of the feed
+reflux_factor   :    float     : factor with which the reflux is mulitplied (conventionally ~1.2-1.5 for real world applications)
+"""
+
+T = 350
 xb = 0.1
 xf = 0.5
-xd = 0.90
-antoine = [[4.16272, 1371.583, -58.496],[6.07936, 2692.187, -17.94]]
-q = 1
-reflux_factor = 1.5 
+xd = 0.99
+antoine = [[4.35576,	1175.581,	-2.071],[4.02832,	1268.636,	-56.199]]
+q = 0.45
+reflux_factor = 3
 
 # Run the script
-plot_mccabe_thiele(T, xb, xf, xd, antoine, q, reflux_factor)
+Ideal_Distillation.plot_mccabe_thiele(antoine, T, xd, xb, xf, q, reflux_factor)
