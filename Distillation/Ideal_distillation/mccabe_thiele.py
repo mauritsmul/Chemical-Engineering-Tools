@@ -123,8 +123,7 @@ class Ideal_Distillation:
         # Set initial starting point
         x_start, y_start = np.array([xb]), np.array([xb])
 
-        # The algorithm does the following until the seesaw reaches the rectifying section:
-        # 1. Find the VLE point for from the starting point on the stripping section
+        # Draw the seesaw between the operating lines and the equilibrium line
         while stripping_condition:
             # Save the VLE point
             seesaw_points_x.append(x_start)
@@ -174,12 +173,6 @@ class Ideal_Distillation:
         plt.plot(seesaw_points_x, seesaw_points_y)
         plt.show()
 
-            
-
-
-        # 2. Find the point on the stripping line with the same liquid molar fraction on the stripping line
-        # 3. Check whether the point on the VLE line is above the intersection between the stripping and the rectifying line
-
     def show_design_summary():
         pass
          
@@ -203,8 +196,8 @@ xb = 0.1
 xf = 0.5
 xd = 0.99
 antoine = [[4.35576,	1175.581,	-2.071],[4.02832,	1268.636,	-56.199]]
-q = 0.45
-reflux_factor = 3
+q = 0.5
+reflux_factor = 1.1
 
 # Run the script
 Ideal_Distillation.plot_mccabe_thiele(antoine, T, xd, xb, xf, q, reflux_factor)
