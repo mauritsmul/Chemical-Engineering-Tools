@@ -41,11 +41,12 @@ class Ideal_Distillation:
             xf: float : Feed composition of the most volatile component
             alpha: float : Relative volatility of the binary mixture
             q: float : Quality of the feed
-            reflux_ratio: float : Reflux ratio
+            reflux_factor: float : Factor which is multiplied with the minimum reflux ratio
 
         Returns:
             Plot of the McCabe-Thiele diagram for the given binary mixture with given input parameters
-
+            number of stages: int : Number of stages
+            reflux_ratio: float : Reflux ratio
         """
 
         # Calculate the vapor pressures
@@ -169,12 +170,56 @@ class Ideal_Distillation:
             seesaw_points_x.append(x_start)
             seesaw_points_y.append(vle_point)
 
+        # Calculate the number of stages
+        number_of_stages = (len(seesaw_points_x)-1)/2 - 1
+
         # Plot the stages calculated
         plt.plot(seesaw_points_x, seesaw_points_y)
         plt.show()
+        return number_of_stages, reflux_ratio
 
-    def show_design_summary():
-        pass
+    def show_design_summary(reflux_ratio, T, xb, xf, xd, number_of_stages):
+        
+        """
+        Prints a summary of the distillation design to the console.
+
+        Parameters
+        ----------
+        reflux_ratio : float
+            The reflux ratio of the distillation.
+        T : float
+            The temperature at which the distillation is done in Kelvin.
+        xb : float
+            The bottoms composition of the most volatile component.
+        xf : float
+            The feed composition of the most volatile component.
+        xd : float
+            The distillate composition of the most volatile component.
+        number_of_stages : int
+            The number of stages in the distillation column.
+            
+        Notes
+        -----
+        The summary includes the feed composition, bottoms composition, distillate composition, reflux ratio, temperature, and number of stages in the distillation column.
+        """
+        # Make a float from the reflux_ratio array
+        reflux_ratio = reflux_ratio[0]
+
+        summary = f"""
+        ================================================
+                     Distillation Design Summary
+        ================================================
+        | Design Variable           | Value           |
+        ------------------------------------------------
+        | Feed Composition (xf)     | {xf:.2f}            |
+        | Bottoms Composition (xb)  | {xb:.2f}            |
+        | Distillate Composition(xd)| {xd:.2f}            |
+        | Reflux Ratio              | {reflux_ratio:.2f}            |
+        | Temperature (°C)          | {T-273:.2f} °C        |
+        | Number of Trays           | {number_of_stages}             |
+        ================================================
+        """
+        print(summary)
          
 
 """INPUT PARAMETERS FROM USER"""
@@ -200,4 +245,5 @@ q = 0.5
 reflux_factor = 1.1
 
 # Run the script
-Ideal_Distillation.plot_mccabe_thiele(antoine, T, xd, xb, xf, q, reflux_factor)
+number_of_stages, reflux_ratio = Ideal_Distillation.plot_mccabe_thiele(antoine, T, xd, xb, xf, q, reflux_factor)
+Ideal_Distillation.show_design_summary(reflux_ratio, T, xb, xf, xd, number_of_stages)
