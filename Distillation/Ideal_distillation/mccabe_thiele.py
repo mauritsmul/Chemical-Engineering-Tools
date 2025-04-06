@@ -81,6 +81,8 @@ class Ideal_Distillation:
             intersection_q_and_VLE = xf
         else:
             intersection_q_and_VLE = sp.fsolve(lambda x: alpha*x/(1+(alpha-1)*x) - (-q/(1-q)*x + xf/(1-q)), xf)
+            # Convert numpy array from fsolve to a float
+            intersection_q_and_VLE = intersection_q_and_VLE.item(0)
 
         # Check if xd is above the intersection between the q_line and the equilibrium line
         intersection_y = alpha*intersection_q_and_VLE/(1+(alpha-1)*intersection_q_and_VLE)
@@ -202,8 +204,6 @@ class Ideal_Distillation:
         -----
         The summary includes the feed composition, bottoms composition, distillate composition, reflux ratio, temperature, and number of stages in the distillation column.
         """
-        # Make a float from the reflux_ratio array
-        reflux_ratio = reflux_ratio[0]
 
         summary = f"""
         ================================================
