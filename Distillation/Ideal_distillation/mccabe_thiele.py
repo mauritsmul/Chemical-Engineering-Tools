@@ -49,6 +49,10 @@ class Ideal_Distillation:
             reflux_ratio: float : Reflux ratio
         """
 
+        # Check input parameters
+        if xb > 1 or xb < 0 or xf > 1 or xf < 0 or xd > 1 or xd < 0 or q > 1.5 or q < -0.5:
+            raise ValueError("Input parameters must be between 0 and 1")
+
         # Calculate the vapor pressures
         P_vap = [10 **(i[0] - i[1] / (T + i[2])) for i in antoine]
     
@@ -88,8 +92,6 @@ class Ideal_Distillation:
         intersection_y = alpha*intersection_q_and_VLE/(1+(alpha-1)*intersection_q_and_VLE)
         if intersection_y > xd:
             raise ValueError('Infeasible "xd" parameter, the vapor fraction cannot decrease while the liquid molar fraction is increasing')
-        elif intersection_q_and_VLE < xb:
-            raise ValueError('Infeasible "xb" parameter, the vapor fraction cannot increase while the liquid molar fraction is decreasing')
 
         # Calculate the maximum reflux ratio
         minimum_reflux = (xd/intersection_q_and_VLE-alpha*((1-xd)/(1-intersection_q_and_VLE)))/(alpha-1)
@@ -106,6 +108,8 @@ class Ideal_Distillation:
             x_upper = xf
         else:
             x_upper = sp.fsolve(lambda x: (reflux_ratio/(1+reflux_ratio))*x+(1/(1+reflux_ratio))*xd - (-q/(1-q)*x + xf/(1-q)), xf)
+            if x_upper < xb:
+                raise ValueError('Infeasible "q" or "xb" parameter, with given parameters the stripping section is not possible or useless')
 
         y_upper = (reflux_ratio/(1+reflux_ratio))*x_upper+(1/(1+reflux_ratio))*xd
         stripping_slope = (y_upper-xb)/(x_upper-xb)
