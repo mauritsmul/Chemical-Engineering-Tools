@@ -242,7 +242,7 @@ xf = 0.5
 xd = 0.99
 antoine = [[4.35576,	1175.581,	-2.071],[4.02832,	1268.636,	-56.199]]
 q = 0.5
-reflux_factor = 1.1
+reflux_factor = 1.5
 
 # Run the script
 number_of_stages, reflux_ratio = Ideal_Distillation.plot_mccabe_thiele(antoine, T, xd, xb, xf, q, reflux_factor)
