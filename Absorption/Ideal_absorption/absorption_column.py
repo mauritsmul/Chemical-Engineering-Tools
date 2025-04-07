@@ -41,7 +41,6 @@ class AbsorptionColumn:
 
     def calculate_minimum_solvent_flow(henry_constant, gas_inlet_concentration, gas_outlet_threshold_concentration, 
                                        liquid_inlet_concentration, molecular_weight_gas, gas_inflow, P):
-        # Calculate the saturated liquid outlet concentration using Henry's law 
         """
         Calculate the minimum solvent flow from the overall mass balance under the assumption 
         that the liquid is saturated at the bottom of the column
@@ -58,6 +57,7 @@ class AbsorptionColumn:
         Returns:
             minimum_solvent_flow (float) : Minimum solvent flow required to reach the target outlet concentration
         """
+        # Calculate the saturated liquid outlet concentration using Henry's law 
         liquid_maximum_outlet_concentration = P * henry_constant * molecular_weight_gas * 1000
         
         # Calculate the vapor-liquid equilibrium coefficient
@@ -68,13 +68,30 @@ class AbsorptionColumn:
         minimum_solvent_flow = gas_inflow*((gas_inlet_concentration - gas_outlet_threshold_concentration) 
                                            / (gas_inlet_concentration / K - liquid_inlet_concentration))
         return minimum_solvent_flow
+    
+    def calculate_molar_ratio(molar_fraction):
+        """
+        Calculate the molar ratio of a given molar fraction
+
+        Parameters:
+            molar_fraction (float) : Molar fraction of the gas in the liquid
+
+        Returns:
+            molar_ratio (float) : Molar ratio of the gas in the liquid
+        """
+        molar_ratio = molar_fraction / (1 - molar_fraction)
+        return molar_ratio
+    
+    # Rest is going to be added soon. In the coming section the mccabe-thiele method for absorption is going to be elaborated.
+    
+
 
 """INPUT PARAMETERS FROM USER"""
 
 """
 Parameter                           :   type    :       units       :   Description
 T                                   :   float   :       Kelvin      :   Temperature in Kelvin
-P                                   :   float   :        Pa         :   Pressure in Pascals
+P                                   :   float   :        bar         :   Pressure in Pascals
 standard_henry_constant             :   float   :     mol/kg*bar    :   Standard henry constant
 henry_temperature_dependence        :   float   :       Kelvin      :   Temperature dependence of the henry constant
 gas_inlet_concentration             :   float   :        ppm        :   Gas inlet concentration
