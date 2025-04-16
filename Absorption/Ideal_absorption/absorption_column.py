@@ -91,7 +91,7 @@ class AbsorptionColumn:
 """
 Parameter                           :   type    :       units       :   Description
 T                                   :   float   :       Kelvin      :   Temperature in Kelvin
-P                                   :   float   :        bar         :   Pressure in Pascals
+P                                   :   float   :        bar        :   Pressure in Pascals
 standard_henry_constant             :   float   :     mol/kg*bar    :   Standard henry constant
 henry_temperature_dependence        :   float   :       Kelvin      :   Temperature dependence of the henry constant
 gas_inlet_concentration             :   float   :        ppm        :   Gas inlet concentration
